@@ -20,11 +20,14 @@ const char* ssid = "ANTT SOFT_ROOM";
 const char* password = "AnttRoboticsLtd123";
 const char* serverName = "http://www.showabackend-env-1.eba-kai5b5bn.ap-northeast-1.elasticbeanstalk.com/admin/iot/update-sensor-data";
 static const char *url = "https://raw.githubusercontent.com/anttroboticsltd/firmware-update/main/SHAWA_TEST/SHAWA_TEST.bin"; //state url of your firmware image
-
 String st;
 String content;
 String esid;
 String epass = "";
+unsigned long previousMillis = 0;  // will store last time LED was updated
+
+// constants won't change:
+const long interval = 30000;  // interval after every data send
 
 
 // sensor pin number
@@ -103,7 +106,10 @@ void setup() {
 void loop() {
 
   if (WiFi.status() == WL_CONNECTED) {
-
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
     if (Serial.available()>0){
     char x = Serial.read();
     while ( x == 'U'){
@@ -183,14 +189,10 @@ void loop() {
     http.end();
 
 
-
-    // wait 30 seconds
-
-    delay(30000);
-
-
     return;
-  } else {
+  }
+  }
+   else {
     Serial.println("Connection Status Negative. Press 0");
     // is configuration portal requested?
   if ( digitalRead(TRIGGER_PIN) == LOW) {
