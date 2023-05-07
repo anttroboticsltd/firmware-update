@@ -19,7 +19,7 @@ int statusCode;
 const char* ssid = "ANTT SOFT_ROOM";
 const char* password = "AnttRoboticsLtd123";
 const char* serverName = "http://www.showabackend-env-1.eba-kai5b5bn.ap-northeast-1.elasticbeanstalk.com/admin/iot/update-sensor-data";
-static const char *url = "https://raw.githubusercontent.com/ToriqulTarek/OTA_Test/main/.bin"; //state url of your firmware image
+static const char *url = "https://raw.githubusercontent.com/anttroboticsltd/firmware-update/main/SHAWA_TEST/SHAWA_TEST.bin"; //state url of your firmware image
 
 String st;
 String content;
