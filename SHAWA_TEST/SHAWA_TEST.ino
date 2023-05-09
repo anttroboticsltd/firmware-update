@@ -27,7 +27,7 @@ String epass = "";
 unsigned long previousMillis = 0;  // will store last time LED was updated
 
 // constants won't change:
-const long interval = 30000;  // interval after every data send
+const long interval = 10000;  // interval after every data send
 
 
 // sensor pin number
@@ -91,8 +91,26 @@ void setup() {
  WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+      delay(1000);
+        WiFiManager wm;    
+
+    //reset settings - for testing
+    //wm.resetSettings();
+  
+    // set configportal timeout
+    wm.setConfigPortalTimeout(timeout);
+
+    if (!wm.startConfigPortal("SHOWA_COM")) {
+      Serial.println("failed to connect and hit timeout");
+      delay(3000);
+      //reset and try again, or maybe put it to deep sleep
+      ESP.restart();
+      delay(5000);
+    }
+
+    //if you get here you have connected to the WiFi
+    Serial.println("connected...yeey :)");
+
     }
 
     Serial.println("");
@@ -131,6 +149,29 @@ void loop() {
   }
     
   }
+    if (Serial.available()) {
+    char x = Serial.read();
+    if(x == 'P'){
+    WiFiManager wm;    
+
+    //reset settings - for testing
+    //wm.resetSettings();
+  
+    // set configportal timeout
+    wm.setConfigPortalTimeout(timeout);
+
+    if (!wm.startConfigPortal("SHOWA_COM")) {
+      Serial.println("failed to connect and hit timeout");
+      delay(3000);
+      //reset and try again, or maybe put it to deep sleep
+      ESP.restart();
+      delay(5000);
+    }
+
+    //if you get here you have connected to the WiFi
+    Serial.println("connected...yeey :)");
+
+  }
     Serial.println();
     Serial.println("Connection status positive");
     delay(500);
@@ -164,7 +205,7 @@ void loop() {
     DynamicJsonDocument doc(256);
     
 
-    doc["macId"] = "08:3a:f2:72:f2:00";
+    doc["macId"] = sensorData.mac;
    // doc["uid"] = sensorData.uid;
    // doc["id"] = sensorData.id;
     doc["temperature1"] = sensorData.temperature;
@@ -193,9 +234,11 @@ void loop() {
   }
   }
    else {
-    Serial.println("Connection Status Negative. Press 0");
+    Serial.println("Connection Status Negative. Type P");
     // is configuration portal requested?
-  if ( digitalRead(TRIGGER_PIN) == LOW) {
+  if (Serial.available()) {
+    char x = Serial.read();
+    if(x == 'P'){
     WiFiManager wm;    
 
     //reset settings - for testing
@@ -220,5 +263,5 @@ void loop() {
   }
 
 }
-
-
+  }
+}
