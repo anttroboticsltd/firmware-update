@@ -1,7 +1,7 @@
 #ifndef CERT_H
 #define CERT_H
 
-static const char *server_certificate =
+const char * rootCACertificate = 
   "-----BEGIN CERTIFICATE-----\n" \
   "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n" \
   "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n" \
