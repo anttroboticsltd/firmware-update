@@ -1,7 +1,7 @@
 // ************** Showa Sensor + App  ************
 
 // All Library function
-
+#include <FS.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -18,15 +18,13 @@
 int timeout = 120;  // seconds to run for
 int i = 0;
 int statusCode;
-const char* ssid = "ANTT SOFT_ROOM";
-const char* password = "AnttRoboticsLtd123";
 const char* serverName = "http://www.showabackend-env-1.eba-kai5b5bn.ap-northeast-1.elasticbeanstalk.com/admin/iot/update-sensor-data";
 #define URL_fw_Version "https://raw.githubusercontent.com/anttroboticsltd/firmware-update/main/SHAWA_TEST/fw_Version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/anttroboticsltd/firmware-update/main/SHAWA_TEST/SHAWA_TEST.bin"  //state url of your firmware image
 
 //Firmware Current Version
 String FirmwareVer = {
-  "1.1"
+  "1.2"
 };
 
 String st;
@@ -188,17 +186,6 @@ void Send_Data_To_Server() {
   http.end();
 }
 
-void connect_wifi() {
-  Serial.println("Waiting for WiFi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  delay(750);
-}
 
 //firmware update section
 void firmwareUpdate(void) {
@@ -270,22 +257,39 @@ int FirmwareVersionCheck(void) {
 
 
 void setup() {
-  WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
+  
   // put your setup code here, to run once:
   Serial.begin(115200);
   FreqCountESP.begin(inputPin, timerMs);
   Serial.println("\n Starting");
   pinMode(vd_power_pin, OUTPUT);
-  WiFi.begin(ssid, password);
+  //WiFiManager
+  //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  //exit after config instead of connecting
+  wifiManager.setBreakAfterConfig(true);
+
+  //reset settings - for testing
+  //wifiManager.resetSettings();
+
+
+  //tries to connect to last known settings
+  //if it does not connect it starts an access point with the specified name
+  //here  "AutoConnectAP" with password "password"
+  //and goes into a blocking loop awaiting configuration
+  if (!wifiManager.autoConnect("SHOWA_COM")) {
+    Serial.println("failed to connect, we should reset as see if it connects");
+    delay(3000);
+    ESP.restart();
+    delay(5000);
   }
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  //if you get here you have connected to the WiFi
+  Serial.println("connected...yeey :)");
+
+
+  Serial.println("local ip");
   Serial.println(WiFi.localIP());
 }
 
@@ -297,7 +301,7 @@ void loop() {
     if (x == 'U') {
       Serial.print("Active firmware version:");
       Serial.println(FirmwareVer);
-      connect_wifi();
+      
 
       if (WiFi.status() == WL_CONNECTED) {
         Serial.println("wifi connected");
@@ -308,30 +312,15 @@ void loop() {
           Serial.println(FirmwareVer);
           ESP.restart();
         }
-      } else {
-        connect_wifi();
-      }
+      } 
     } /*************Firmware Update section end*****************/
-    else if (x == 'W') {
-        WiFiManager wm;
-
-        //reset settings - for testing
-        //wm.resetSettings();
-
-        // set configportal timeout
-        wm.setConfigPortalTimeout(timeout);
-
-        if (!wm.startConfigPortal("SHOWA_COM")) {
-          Serial.println("failed to connect and hit timeout");
-          delay(3000);
-          //reset and try again, or maybe put it to deep sleep
-          ESP.restart();
-          delay(5000);
-        }
-
-        //if you get here you have connected to the WiFi
-        Serial.println("connected...yeey :)");
-      }
+    else if (x == 'R'){
+      WiFiManager wifiManager;
+      wifiManager.resetSettings();
+      Serial.println("WiFi Reseted. Configure again.");
+      delay(500);
+      ESP.restart();
+    }
   }
 
 
@@ -346,24 +335,8 @@ void loop() {
   }
 
   else {
-    Serial.println("Connection Status Negative. Creating Hotspot...");
-    WiFiManager wm;
-
-        //reset settings - for testing
-        //wm.resetSettings();
-
-        // set configportal timeout
-        wm.setConfigPortalTimeout(timeout);
-
-        if (!wm.startConfigPortal("SHOWA_COM")) {
-          Serial.println("failed to connect and hit timeout");
-          delay(3000);
-          //reset and try again, or maybe put it to deep sleep
-          ESP.restart();
-          delay(5000);
-        }
-
-        //if you get here you have connected to the WiFi
-        Serial.println("connected...yeey :)");
+    Serial.println("Connection Status Negative. Restarting..");
+    delay(1000);
+    ESP.restart();
   }
 }
