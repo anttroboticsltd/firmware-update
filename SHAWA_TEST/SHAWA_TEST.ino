@@ -10,8 +10,9 @@
 #include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
 #include "cert.h"
-#include "FreqCountESP.h"
 #include <Arduino.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 //Variables Decalration
 
 
@@ -34,42 +35,27 @@ String epass = "";
 unsigned long previousMillis = 0;  // will store last time LED was updated
 
 // constants won't change:
-const long interval = 5000;  // interval after every data send
+const long interval = 500;  // interval after every data send
 
 
 // sensor pin number
+// Data wire is conntec to the Arduino digital pin 4
+int vibPin = 39;
+#define ONE_WIRE_BUS 13
 
-int inputPin = 36;
-int timerMs = 1000;
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
 
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
 
-#define ntc_pin 34  // Pin,to which the voltage divider is connected
-
-#define vd_power_pin 17  // 3.3V for the voltage divider
-
-#define nominal_resistance 10000  //Nominal resistance at 25⁰C
-
-
-#define nominal_temeprature 25  // temperature for nominal resistance (almost always 25⁰ C)
-
-
-#define samplingrate 5  // Number of samples
-
-
-#define beta 3950  // The beta coefficient or the B value of the thermistor (usually 3000-4000) check the datasheet for the accurate value.
-
-
-#define Rref 10000  //Value of  resistor used for the voltage divider
-
-
-int samples = 0;  //array to store the samples
 
 
 // A structure that stores sensor data
 
 struct SensorData {
 
-  double temperature;
+  float temperature;
 
   String mac;
 
@@ -83,60 +69,12 @@ struct SensorData {
 
 void Send_Data_To_Server() {
   // sensor data read
-
+   // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+  sensors.requestTemperatures(); 
+  // Why "byIndex"? You can have more than one IC on the same bus. 0 refers to the first IC on the wire
+  float temp = sensors.getTempCByIndex(0); 
   SensorData sensorData;
-
-
-  uint8_t i;
-
-
-  float average;
-  float temperature;
-
-  samples = 0;
-
-  digitalWrite(vd_power_pin, HIGH);
-
-  for (i = 0; i < samplingrate; i++) {
-
-
-    samples += analogRead(ntc_pin);
-
-
-    delay(10);
-  }
-
-  digitalWrite(vd_power_pin, LOW);
-
-  average = 0;
-
-
-  average = samples / samplingrate;
-  // Calculate NTC resistance
-
-
-  average = 4096 / average - 1;
-
-
-  average = Rref / average;
-  temperature = average / nominal_resistance;  // (R/Ro)
-
-
-  temperature = log(temperature);  // ln(R/Ro)
-
-
-  temperature /= beta;  // 1/B * ln(R/Ro)
-
-
-  temperature += 1.0 / (nominal_temeprature + 273.15);  // + (1/To)
-
-
-  temperature = 1.0 / temperature;  // Invert
-
-
-  temperature -= 273.15;  // convert absolute temp to C
-
-  sensorData.temperature = temperature;
+  sensorData.temperature = temp;
 
   sensorData.id = "01";
 
@@ -145,8 +83,9 @@ void Send_Data_To_Server() {
   sensorData.mac = WiFi.macAddress();
   Serial.print("ESP mac :");
   Serial.println(sensorData.mac);
-  uint32_t frequency = (FreqCountESP.read()/100);
-  sensorData.vibration = frequency;
+  int vibrate = analogRead(vibPin);
+  int vibra = map(vibrate, 0, 4096, 0 , 100);
+  sensorData.vibration = vibra;
 
   // json encode to encode sensor data into JSON
 
@@ -165,17 +104,17 @@ void Send_Data_To_Server() {
   // doc["uid"] = sensorData.uid;
   // doc["id"] = sensorData.id;
   doc["temperature1"] = serialized(String(sensorData.temperature,2));
-  doc["temperature2"] = 123;
-  doc["temperature3"] = 123;
-  doc["temperature4"] = 123;
-  doc["temperature5"] = 123;
-  doc["temperature6"] = 123;
+  doc["temperature2"] = 0;
+  doc["temperature3"] = 0;
+  doc["temperature4"] = 0;
+  doc["temperature5"] = 0;
+  doc["temperature6"] = 0;
   doc["vibration1"] = sensorData.vibration;
-  doc["vibration2"] = 123;
-  doc["vibration3"] = 123;
-  doc["vibration4"] = 123;
-  doc["vibration5"] = 123;
-  doc["vibration6"] = 123;
+  doc["vibration2"] = 0;
+  doc["vibration3"] = 0;
+  doc["vibration4"] = 0;
+  doc["vibration5"] = 0;
+  doc["vibration6"] = 0;
   serializeJson(doc, buffer);
   Serial.print(buffer);
 
@@ -255,14 +194,12 @@ int FirmwareVersionCheck(void) {
   return 0;
 }
 
-
 void setup() {
   
   // put your setup code here, to run once:
   Serial.begin(115200);
-  FreqCountESP.begin(inputPin, timerMs);
+  sensors.begin();
   Serial.println("\n Starting");
-  pinMode(vd_power_pin, OUTPUT);
   //WiFiManager
   //Local intialization. Once its business is done, there is no need to keep it around
   WiFiManager wifiManager;
@@ -292,6 +229,8 @@ void setup() {
   Serial.println("local ip");
   Serial.println(WiFi.localIP());
 }
+
+
 
 
 void loop() {
